@@ -16,7 +16,7 @@ def encryptXORBytes(plainBytes, keyBytes):
 def encryptXORwithRepeatedKeys(plaintext, keystr):
     plaintextBytes = bytearray(plaintext, "utf-8")
     keystrBytes = bytearray(keystr, "utf-8")
-    
+
     xorBytes = encryptXORBytes(plaintextBytes, keystrBytes)
     return xorBytes
 
@@ -25,7 +25,7 @@ def encryptXOR():
     str1 = "Burning 'em, if you ain't quick and nimble\n"
     str2 = "I go crazy when I hear a cymbal"
     keyStr = "ICE"
-    
+
     output1 = "0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272"
     output2 = "a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f"
     output_byte = encryptXORwithRepeatedKeys(str1+str2, keyStr)
