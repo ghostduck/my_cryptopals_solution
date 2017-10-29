@@ -205,6 +205,8 @@ def generate_gf_2n_log_table_of_3():
     print("]")
     return result
 
+def create_sbox():
+    pass
 
 def simplified_affine_transformation(b):
     # use XOR instead of matrix since they are all in GF(2)
