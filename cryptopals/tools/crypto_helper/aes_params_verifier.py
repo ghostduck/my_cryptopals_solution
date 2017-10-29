@@ -129,6 +129,23 @@ def gf_2n_mul_faster(a,b):
 
     return s
 
+def generate_gf_2n_mul_inv_result_gen_table_lookup():
+    # This method relies on a generator, its expo table and log table
+    result = [None] * 256
+    result[0] = 0
+    result[1] = 1
+
+    for i in range(2,256):
+        # Think it another way:
+        # 3^255 == 1, all we have currently is i, which is 3^s
+        # s = gf_2n_log_table_of_3[i]
+        # if s + k == 255, then 3^k is the multiplicative inverse
+
+        k = 255 - gf_2n_log_table_of_3[i]
+        result[i] = gf_2n_expo_table_of_3[k]
+
+    print(", ".join(format(k, "#04X") for k in result))
+    return result
 
 def generate_gf_2n_mul_inv_result_bruteforce():
     # cycle 255 * 255 times to get everything
@@ -231,11 +248,12 @@ def simplified_affine_transformation(b):
 print(gf_2n_mul(3,7)) # 9
 print(gf_2n_mul(7,3)) # 9
 print(gf_2n_mul(0x53,0xCA)) # 1
+generate_gf_2n_mul_inv_result_gen_table_lookup()
 #generate_gf_2n_log_table_of_3()
-print(gf_2n_mul_faster(3,7) == gf_2n_mul_faster(7,3) == gf_2n_mul(3,7) == gf_2n_mul(7,3))
-print(gf_2n_mul_faster(0x53,0xCA) == gf_2n_mul_faster(0xCA,0x53) == gf_2n_mul(0x53,0xCA) == gf_2n_mul(0xCA,0x53))
-print(gf_2n_mul_faster(0xF6,0x77))
-print(gf_2n_mul(0xF6,0x77))
+#print(gf_2n_mul_faster(3,7) == gf_2n_mul_faster(7,3) == gf_2n_mul(3,7) == gf_2n_mul(7,3))
+#print(gf_2n_mul_faster(0x53,0xCA) == gf_2n_mul_faster(0xCA,0x53) == gf_2n_mul(0x53,0xCA) == gf_2n_mul(0xCA,0x53))
+#print(gf_2n_mul_faster(0xF6,0x77))
+#print(gf_2n_mul(0xF6,0x77))
 input("")
 
 # exp_of_e5[0xfe] == 0x0e # e5^fe == 0x0e
