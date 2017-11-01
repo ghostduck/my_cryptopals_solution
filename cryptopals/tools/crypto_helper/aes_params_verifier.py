@@ -137,6 +137,11 @@ mul_table_of_3 = bytes([
     0x0B, 0x08, 0x0D, 0x0E, 0x07, 0x04, 0x01, 0x02, 0x13, 0x10, 0x15, 0x16, 0x1F, 0x1C, 0x19, 0x1A
 ])
 
+def print_array_helper(name, arr):
+    print("{} = bytes([".format(name))
+    print(", ".join(format(k, "#04X") for k in arr))
+    print("])")
+    print()
 
 def gf_2n_mul(a,b):
     product = 0
@@ -220,9 +225,7 @@ def generate_gf_2n_mul_inv_result_gen_table_lookup():
         k = 255 - gf_2n_log_table_of_3[i]
         result[i] = gf_2n_expo_table_of_3[k]
 
-    print("gf_2n_mul_inv_result = [")
-    print(", ".join(format(k, "#04X") for k in result))
-    print("]")
+    print_array_helper("gf_2n_mul_inv_result", result)
     return result
 
 def generate_gf_2n_mul_inv_result_bruteforce():
@@ -252,9 +255,7 @@ def generate_gf_2n_mul_inv_result_bruteforce():
                 unused.remove(i)
                 break
 
-    print("gf_2n_mul_inv_result = [")
-    print(", ".join(format(k, "#04X") for k in result))
-    print("]")
+    print_array_helper("gf_2n_mul_inv_result", result)
     return result
 
 def generate_gf_2n_expo_table_of_3():
@@ -266,9 +267,7 @@ def generate_gf_2n_expo_table_of_3():
     for i in range(1,256):
         result[i] = gf_2n_mul(result[i-1], multiplier)
 
-    print("gf_2n_log_table_of_3 = [")
-    print(", ".join(format(k, "#04X") for k in result))
-    print("]")
+    print_array_helper("gf_2n_expo_table_of_3", result)
     return result
 
 def generate_gf_2n_log_table_of_3():
@@ -281,9 +280,7 @@ def generate_gf_2n_log_table_of_3():
     result[0] = 0
     result[1] = 0xFF
 
-    print("gf_2n_log_table_of_3 = [")
-    print(", ".join(format(k, "#04X") for k in result))
-    print("]")
+    print_array_helper("gf_2n_log_table_of_3", result)
     return result
 
 def affine_transformation(p):
@@ -350,10 +347,7 @@ def create_sbox():
         p ^= 0x63
         inv_result[i] = p
 
-    print("SBOX = [")
-    print(", ".join(format(k, "#04X") for k in inv_result))
-    print("]")
-
+    print_array_helper("SBOX", inv_result)
     return inv_result
 
 
