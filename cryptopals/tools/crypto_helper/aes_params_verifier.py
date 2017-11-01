@@ -313,7 +313,7 @@ def affine_transformation(p):
     # The formula: bi' = bi XOR b(i+4)mod8 XOR b(i+5)mod8 XOR b(i+6)mod8 XOR b(i+7)mod8
 
     # The tricks:
-    # 1) For each number p, create a copy k, circluar left shift k by 1, then i XOR k
+    # 1) For each number p, create a copy k, circluar left shift k by 1, then p XOR k
     #
     #    1st round       | 2nd round       | 3rd round       | 4th round       |
     # p: 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 | 7 6 5 4 3 2 1 0 |
@@ -337,6 +337,13 @@ def affine_transformation(p):
         p ^= k
     return p
 
+def generate_mul_table_of(k):
+    result = [None] * 256
+    for i in range(256):
+        result[i] = gf_2n_mul_faster(k,i)
+
+    print_array_helper("mul_table_of_{}".format(k), result)
+    return result
 
 def create_sbox():
     inv_result = generate_gf_2n_mul_inv_result_gen_table_lookup()
@@ -350,11 +357,53 @@ def create_sbox():
     print_array_helper("SBOX", inv_result)
     return inv_result
 
+def create_sbox_inverse():
+    sbox = create_sbox()
+    result = [None] * 256
+
+    for i,b in enumerate(sbox):
+        result[b] = i
+
+    print_array_helper("SBOX_inv", result)
+    return result
+
+def mix_columns_operation(s0, s1, s2, s3):
+    r0 = mul_table_of_2[s0] ^ mul_table_of_3[s1] ^ s2 ^ s3
+    r1 = s0 ^ mul_table_of_2[s1] ^ mul_table_of_3[s2] ^ s3
+    r2 = s0 ^ s1 ^ mul_table_of_2[s2] ^ mul_table_of_3[s3]
+    r3 = mul_table_of_3[s0] ^ s1 ^ s2 ^ mul_table_of_2[s3]
+
+    return (r0, r1, r2, r3)
+
+def test_mix_columns_operation():
+    assert mix_columns_operation(0xdb, 0x13, 0x53, 0x45) == (0x8e, 0x4d, 0xa1, 0xbc)
+    assert mix_columns_operation(0xf2, 0x0a, 0x22, 0x5c) == (0x9f, 0xdc, 0x58, 0x9d)
+    assert mix_columns_operation(0x01, 0x01, 0x01, 0x01) == (0x01, 0x01, 0x01, 0x01)
+    assert mix_columns_operation(0xc6, 0xc6, 0xc6, 0xc6) == (0xc6, 0xc6, 0xc6, 0xc6)
+    assert mix_columns_operation(0xd4, 0xd4, 0xd4, 0xd5) == (0xd5, 0xd5, 0xd7, 0xd6)
+    assert mix_columns_operation(0x2d, 0x26, 0x31, 0x4c) == (0x4d, 0x7e, 0xbd, 0xf8)
 
 print(gf_2n_mul(3,7)) # 9
 print(gf_2n_mul(7,3)) # 9
 print(gf_2n_mul(0x53,0xCA)) # 1
+
+test_mix_columns_operation()
+
+generate_gf_2n_mul_inv_result_bruteforce()
+generate_gf_2n_mul_inv_result_bruteforce()
+
+generate_gf_2n_expo_table_of_3()
+generate_gf_2n_log_table_of_3()
+
+generate_mul_table_of(2)
+generate_mul_table_of(3)
+#generate_mul_table_of(9)
+#generate_mul_table_of(11)
+#generate_mul_table_of(13)
+#generate_mul_table_of(14)
+
 create_sbox()
+create_sbox_inverse()
 
 #generate_gf_2n_log_table_of_3()
 #print(gf_2n_mul_faster(3,7) == gf_2n_mul_faster(7,3) == gf_2n_mul(3,7) == gf_2n_mul(7,3))
