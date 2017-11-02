@@ -432,6 +432,35 @@ def AES_encrypt(key_bytes=None, plain_bytes=None):
 
     return state
 
+def AES_decrypt(key_bytes=None, cipher_bytes=None):
+    key_bytes = bytes(key_bytes)
+    plain_bytes = bytes(cipher_bytes)
+
+    valid_key_size_check(key_bytes)
+    valid_aes_block_check(cipher_bytes)
+
+    rounds = key_size_to_total_rounds[len(key_bytes)]
+
+    # Start AES decryption here
+    state = bytearray(cipher_bytes)
+    expanded_keys = key_expansion(key_bytes)
+
+    # Note that last round has no mix column in encryption
+    add_round_key(state, expanded_keys, rounds)
+
+    for r in range(rounds, 0, -1):
+        shift_rows_inv(state)
+        sub_bytes_inv(state)
+        add_round_key(state, expanded_keys, r)
+        mix_columns_inv(state)
+
+    # round 0, last round
+    shift_rows_inv(state)
+    sub_bytes_inv(state)
+    add_round_key(state, expanded_keys, 0)
+
+    return state
+
 def test_key_expansion():
     print("Checking for key expansion function")
 
@@ -465,7 +494,7 @@ def test_key_expansion():
 
 def test_encrypt():
     # FIPS-197 Appendix A C.1
-    plain_bytes = bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 ,0xaa ,0xbb ,0xcc ,0xdd ,0xee ,0xff ])
+    plain_bytes = bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 ,0xaa ,0xbb ,0xcc ,0xdd ,0xee ,0xff])
     key_bytes = bytes([0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f])
     cipher_bytes = AES_encrypt(key_bytes, plain_bytes)
 
