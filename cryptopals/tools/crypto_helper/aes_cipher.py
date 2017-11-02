@@ -221,16 +221,22 @@ def rot_word(p_b):
     return p_b
 
 def shift_rows(p_b):
+    # BIG WARNING!!! NOT
+    #  0  1  2  3
+    #  4  5  6  7
+    #  8  9 10 11
+    # 12 13 14 15
+
     # Shift row in graph:
-    #  0  1  2  3      0  1  2  3
-    #  4  5  6  7  ->  5  6  7  4 (shift 1 left)
-    #  8  9 10 11     10 11  8  9 (shift 2 left)
-    # 12 13 14 15     15 12 13 14 (shift 3 left)
+    # 0   4    8   12       0   4   8  12
+    # 1   5    9   13  ->   5   9  13   1 (shift 1 left)
+    # 2   6   10   14      10  14   2   6 (shift 2 left)
+    # 3   7   11   15      15   3   7  11 (shift 3 left, or just shift 1 right)
 
     # I really love Python's syntax
-    p_b[4] , p_b[5] , p_b[6] , p_b[7]  = p_b[5] , p_b[6] , p_b[7] , p_b[4]
-    p_b[8] , p_b[9] , p_b[10], p_b[11] = p_b[10], p_b[11], p_b[8] , p_b[9]
-    p_b[12], p_b[13], p_b[14], p_b[15] = p_b[15], p_b[12], p_b[13], p_b[14]
+    p_b[1], p_b[5], p_b[9] , p_b[13] = p_b[5],  p_b[9],  p_b[13], p_b[1]
+    p_b[2], p_b[6], p_b[10], p_b[14] = p_b[10], p_b[14], p_b[2] , p_b[6]
+    p_b[3], p_b[7], p_b[11], p_b[15] = p_b[15], p_b[3],  p_b[7] , p_b[11]
 
     return p_b
 
@@ -330,13 +336,21 @@ def add_round_key(state, expanded_keys, round_number):
     # [0:4], [4:8], [8:12] ...
     wanted_keys = expanded_keys[actual_index : actual_index+4]
 
-    #   state          wanted_keys   (from expanded_keys)
-    #                  0   1   2   3 (index + n)
+    #  state            wanted_keys   (from expanded_keys)
+    #                    0   1   2   3 (index + n)
     #
-    #  0  1  2  3      00  10  20  30
-    #  4  5  6  7      01  11  21  31
-    #  8  9 10 11      02  12  22  32
-    # 12 13 14 15      03  13  23  33
+    #  0  4   8  12     00  10  20  30
+    #  1  5   9  13     01  11  21  31
+    #  2  6  10  14     02  12  22  32
+    #  3  7  11  15     03  13  23  33
+
+    for i in range(4):
+        q = i * 4
+        state[q]    ^= wanted_keys[i][0]
+        state[q+1]  ^= wanted_keys[i][1]
+        state[q+2]  ^= wanted_keys[i][2]
+        state[q+3]  ^= wanted_keys[i][3]
+
 def shift_rows_inv(c_b):
     # Reminder: Shift row in graph:
     #  0  1  2  3      0  1  2  3
