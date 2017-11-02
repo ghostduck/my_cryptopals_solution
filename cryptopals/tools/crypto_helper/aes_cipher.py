@@ -9,9 +9,8 @@
 
 # don't know much about side-channel attack against Python script ... so ... take your own risk using this
 
-# Static class of AES block cipher
 
-
+# tables for encryption
 S_BOX = bytes([
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
     0xCA, 0x82, 0xC9, 0x7D, 0xFA, 0x59, 0x47, 0xF0, 0xAD, 0xD4, 0xA2, 0xAF, 0x9C, 0xA4, 0x72, 0xC0,
@@ -89,6 +88,7 @@ rcon = bytes([
     0x61, 0xC2, 0x9F, 0x25, 0x4A, 0x94, 0x33, 0x66, 0xCC, 0x83, 0x1D, 0x3A, 0x74, 0xE8, 0xCB, 0x8D
 ])
 
+# tables for decryption
 SBOX_inv = bytes([
     0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
     0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
@@ -129,12 +129,16 @@ def valid_aes_block_check(b):
     if len(b) != 16:
         raise ValueError("Block bytes not 128 bits/16 bytes")
 
+# For functions having single params of p_b -- they all directly modify content of array, so they don't need to return anything actually
+# But I decide to return p_b, so that they can be better chained
+
 def sub_bytes(p_b):
     for i,b in enumerate(p_b):
         p_b[i] = S_BOX[b]
+    return p_b
 
 def sub_word(p_b):
-    sub_bytes(p_b)
+    return sub_bytes(p_b)
 
 def rot_word(p_b):
     p_b[0], p_b[1], p_b[2], p_b[3] = p_b[1], p_b[2], p_b[3], p_b[0]
@@ -152,6 +156,8 @@ def shift_rows(p_b):
     p_b[8] , p_b[9] , p_b[10], p_b[11] = p_b[10], p_b[11], p_b[8] , p_b[9]
     p_b[12], p_b[13], p_b[14], p_b[15] = p_b[15], p_b[12], p_b[13], p_b[14]
 
+    return p_b
+
 def mix_columns(p_b):
     # Do special calculation on column basis, for all 4 columns in state(p_b) (as 4x4)
 
@@ -160,7 +166,7 @@ def mix_columns(p_b):
         s0, s1, s2, s3 = p_b[i0], p_b[i1], p_b[i2], p_b[i3]
 
         p_b[i0], p_b[i1], p_b[i2], p_b[i3] = mix_columns_operation(s0, s1, s2, s3)
-
+    return p_b
 
 def mix_columns_operation(s0, s1, s2, s3):
 
@@ -230,11 +236,11 @@ def key_expansion(k_b):
         temp = expanded_words[i-1][:]
 
         if i % key_length_in_words == 0:
-            sub_word(rot_word(temp))
+            temp = sub_word(rot_word(temp))
             temp[0] ^= rcon[i // key_length_in_words]
 
         elif (key_length_in_words > 6 and i % key_length_in_words == 4):
-            sub_word(temp)
+            temp = sub_word(temp)
 
         expanded_words[i] = word_XOR(expanded_words[i-key_length_in_words], temp)
         i += 1
@@ -298,9 +304,25 @@ if __name__ == "__main__":
     # FIPS-197 Appendix A A.1
     k_b = bytes([0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c])
     w = key_expansion(k_b)
+    assert w[43][0] == 0xb6
+    assert w[43][1] == 0x63
+    assert w[43][2] == 0x0c
+    assert w[43][3] == 0xa6
 
     for i, k in enumerate(w):
         r = "".join(format(p, "02x") for p in k)
         print(i, r)
 
+    k_256 = bytes([0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
+                    0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4  ])
+
+    w256 = key_expansion(k_256)
+    assert w256[59][0] == 0x70
+    assert w256[59][1] == 0x6c
+    assert w256[59][2] == 0x63
+    assert w256[59][3] == 0x1e
+
+    for i, k in enumerate(w256):
+        r = "".join(format(p, "02x") for p in k)
+        print(i, r)
 
