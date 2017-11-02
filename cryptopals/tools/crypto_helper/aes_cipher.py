@@ -337,13 +337,54 @@ def add_round_key(state, expanded_keys, round_number):
     #  4  5  6  7      01  11  21  31
     #  8  9 10 11      02  12  22  32
     # 12 13 14 15      03  13  23  33
+def shift_rows_inv(c_b):
+    # Reminder: Shift row in graph:
+    #  0  1  2  3      0  1  2  3
+    #  4  5  6  7  ->  5  6  7  4 (shift 1 left)
+    #  8  9 10 11     10 11  8  9 (shift 2 left)
+    # 12 13 14 15     15 12 13 14 (shift 3 left)
 
+    # Shift row inverse in graph:                                  Plaintext    | Mapping
+    #                  0  1  2  3      0  1  2  3                 |  0  1  2  3 |
+    #                  4  5  6  7  ->  7  4  5  6 (shift 1 right) |  4  5  6  7 |(7 -> 4 , others + 1)
+    #                  8  9 10 11     10 11  8  9 (shift 2 right) |  8  9 10 11 |(10 -> 8, 11 -> 9, other + 2)
+    #                 12 13 14 15     13 14 15 12 (shift 3 right) | 12 13 14 15 |(12 -> 15, others - 1)
+    c_b[4] , c_b[5] , c_b[6] , c_b[7]  = c_b[7] , c_b[4] , c_b[5] , c_b[6]
+    c_b[8] , c_b[9] , c_b[10], c_b[11] = c_b[10], c_b[11], c_b[8] , c_b[9]
+    c_b[12], c_b[13], c_b[14], c_b[15] = c_b[13], c_b[14], c_b[15], c_b[12]
+
+    return c_b
+
+def sub_bytes_inv(c_b):
+    for i,b in enumerate(c_b):
+        c_b[i] = SBOX_inv[b]
+    return c_b
+
+def mix_columns_inv(c_b):
     for i in range(4):
-        state[i]    ^= wanted_keys[i][0]
-        state[i+4]  ^= wanted_keys[i][1]
-        state[i+8]  ^= wanted_keys[i][2]
-        state[i+12] ^= wanted_keys[i][3]
+        i0, i1, i2, i3 = i, i+4, i+8, i+12
+        s0, s1, s2, s3 = c_b[i0], c_b[i1], c_b[i2], c_b[i3]
 
+        c_b[i0], c_b[i1], c_b[i2], c_b[i3] = mix_columns_operation(s0, s1, s2, s3)
+
+    return c_b
+
+def mix_columns_inv_operation(s0, s1, s2, s3):
+    # Simiar to mix columns, but we use different matrix
+    # s0,c'    0e 0b 0d 09     s0,c
+    # s1,c'    09 0e 0b 0d     s1,c
+    # s2,c' =  0d 09 0e 0b  x  s2,c
+    # s3,c'    0b 0d 09 0e     s3,c
+
+    # 0b = 11, 0d = 13, 0e = 14
+    # 14 11 13 9 keep shifting right
+
+    r0 = mul_table_of_14[s0] ^ mul_table_of_11[s1] ^ mul_table_of_13[s2] ^ mul_table_of_9[s3]
+    r1 = mul_table_of_9[s0] ^ mul_table_of_14[s1] ^ mul_table_of_11[s2] ^ mul_table_of_13[s3]
+    r2 = mul_table_of_13[s0] ^ mul_table_of_9[s1] ^ mul_table_of_14[s2] ^ mul_table_of_11[s3]
+    r3 = mul_table_of_11[s0] ^ mul_table_of_13[s1] ^ mul_table_of_9[s2] ^ mul_table_of_14[s3]
+
+    return (r0, r1, r2, r3)
 
 # This function just run the block, namely ECB mode
 def encrypt(key_bytes, plain_bytes):
