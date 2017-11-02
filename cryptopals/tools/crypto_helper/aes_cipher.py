@@ -347,26 +347,29 @@ def add_round_key(state, expanded_keys, round_number):
 
     for i in range(4):
         q = i * 4
+
         state[q]    ^= wanted_keys[i][0]
         state[q+1]  ^= wanted_keys[i][1]
         state[q+2]  ^= wanted_keys[i][2]
         state[q+3]  ^= wanted_keys[i][3]
 
 def shift_rows_inv(c_b):
-    # Reminder: Shift row in graph:
-    #  0  1  2  3      0  1  2  3
-    #  4  5  6  7  ->  5  6  7  4 (shift 1 left)
-    #  8  9 10 11     10 11  8  9 (shift 2 left)
-    # 12 13 14 15     15 12 13 14 (shift 3 left)
+    # Reminder:
+    # Shift row in graph:
+    # 0   4    8   12       0   4   8  12
+    # 1   5    9   13  ->   5   9  13   1 (shift 1 left)
+    # 2   6   10   14      10  14   2   6 (shift 2 left)
+    # 3   7   11   15      15   3   7  11 (shift 3 left, or just shift 1 right)
 
-    # Shift row inverse in graph:                                  Plaintext    | Mapping
-    #                  0  1  2  3      0  1  2  3                 |  0  1  2  3 |
-    #                  4  5  6  7  ->  7  4  5  6 (shift 1 right) |  4  5  6  7 |(7 -> 4 , others + 1)
-    #                  8  9 10 11     10 11  8  9 (shift 2 right) |  8  9 10 11 |(10 -> 8, 11 -> 9, other + 2)
-    #                 12 13 14 15     13 14 15 12 (shift 3 right) | 12 13 14 15 |(12 -> 15, others - 1)
-    c_b[4] , c_b[5] , c_b[6] , c_b[7]  = c_b[7] , c_b[4] , c_b[5] , c_b[6]
-    c_b[8] , c_b[9] , c_b[10], c_b[11] = c_b[10], c_b[11], c_b[8] , c_b[9]
-    c_b[12], c_b[13], c_b[14], c_b[15] = c_b[13], c_b[14], c_b[15], c_b[12]
+    # Shift row inverse in graph:
+    #  0  4   8  12       0   4   8  12
+    #  1  5   9  13  ->  13   1   5   9 (shift 1 right)
+    #  2  6  10  14      10  14   2   6 (shift 2 right)
+    #  3  7  11  15       7  11  15   3 (shift 3 right, or just shift 1 left)
+
+    c_b[1] , c_b[5] , c_b[9]  , c_b[13] = c_b[13] , c_b[1] , c_b[5]  , c_b[9]
+    c_b[2] , c_b[6] , c_b[10] , c_b[14] = c_b[10] , c_b[14], c_b[2]  , c_b[6]
+    c_b[3] , c_b[7],  c_b[11] , c_b[15] = c_b[7]  , c_b[11], c_b[15] , c_b[3]
 
     return c_b
 
@@ -377,10 +380,11 @@ def sub_bytes_inv(c_b):
 
 def mix_columns_inv(c_b):
     for i in range(4):
-        i0, i1, i2, i3 = i, i+4, i+8, i+12
+        q = i*4
+        i0, i1, i2, i3 = q, q+1, q+2, q+3
         s0, s1, s2, s3 = c_b[i0], c_b[i1], c_b[i2], c_b[i3]
 
-        c_b[i0], c_b[i1], c_b[i2], c_b[i3] = mix_columns_operation(s0, s1, s2, s3)
+        c_b[i0], c_b[i1], c_b[i2], c_b[i3] = mix_columns_inv_operation(s0, s1, s2, s3)
 
     return c_b
 
@@ -445,10 +449,11 @@ def AES_decrypt(key_bytes=None, cipher_bytes=None):
     state = bytearray(cipher_bytes)
     expanded_keys = key_expansion(key_bytes)
 
-    # Note that last round has no mix column in encryption
+    # Note that last round in encryption has no mix column
     add_round_key(state, expanded_keys, rounds)
 
-    for r in range(rounds, 0, -1):
+    # One round above, so minus 1 here
+    for r in range(rounds-1, 0, -1):
         shift_rows_inv(state)
         sub_bytes_inv(state)
         add_round_key(state, expanded_keys, r)
@@ -517,7 +522,52 @@ def test_encrypt():
 
     print("Test completed, AES encryption runs correctly!")
 
+def test_decrypt():
+    # FIPS-197 Appendix A C.1
+    cipher_bytes = bytes([0x8e, 0xa2, 0xb7, 0xca, 0x51, 0x67, 0x45, 0xbf, 0xea, 0xfc, 0x49, 0x90, 0x4b, 0x49, 0x60, 0x89])
+    key_bytes = bytes([
+        0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f,
+        0x10, 0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x1b, 0x1c, 0x1d, 0x1e, 0x1f
+    ])
+
+    plain_bytes = AES_decrypt(key_bytes, cipher_bytes)
+
+    assert plain_bytes[0]  == 0x00
+    assert plain_bytes[1]  == 0x11
+    assert plain_bytes[2]  == 0x22
+    assert plain_bytes[3]  == 0x33
+    assert plain_bytes[4]  == 0x44
+    assert plain_bytes[5]  == 0x55
+    assert plain_bytes[6]  == 0x66
+    assert plain_bytes[7]  == 0x77
+    assert plain_bytes[8]  == 0x88
+    assert plain_bytes[9]  == 0x99
+    assert plain_bytes[10] == 0xAA
+    assert plain_bytes[11] == 0xBB
+    assert plain_bytes[12] == 0xCC
+    assert plain_bytes[13] == 0xDD
+    assert plain_bytes[14] == 0xEE
+    assert plain_bytes[15] == 0xFF
+
+    print("Test completed, AES-256 decryption runs correctly!")
+
+def simple_enc_dec_test():
+    # FIPS-197 Appendix A C.1
+    plain_bytes = bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 ,0xaa ,0xbb ,0xcc ,0xdd ,0xee ,0xff])
+    key_bytes = bytes([0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f])
+    cipher_bytes = AES_encrypt(key_bytes, plain_bytes)
+
+    assert AES_decrypt(key_bytes, cipher_bytes) == plain_bytes
+
+    print("Test completed, AES decryption and encryption both runs correctly!")
+
+def print_bytes_helper(description, b_s):
+    show_byte_message = "".join("{0:02x}".format(k) for k in b_s)
+    print(description, show_byte_message)
+
 if __name__ == "__main__":
     #test_key_expansion()
-    test_encrypt()
+    #test_encrypt()
+    #test_decrypt()
+    simple_enc_dec_test()
     print("End of program")
