@@ -244,7 +244,8 @@ def mix_columns(p_b):
     # Do special calculation on column basis, for all 4 columns in state(p_b) (as 4x4)
 
     for i in range(4):
-        i0, i1, i2, i3 = i, i+4, i+8, i+12
+        q = i*4
+        i0, i1, i2, i3 = q, q+1, q+2, q+3
         s0, s1, s2, s3 = p_b[i0], p_b[i1], p_b[i2], p_b[i3]
 
         p_b[i0], p_b[i1], p_b[i2], p_b[i3] = mix_columns_operation(s0, s1, s2, s3)
@@ -401,7 +402,7 @@ def mix_columns_inv_operation(s0, s1, s2, s3):
     return (r0, r1, r2, r3)
 
 # This function just run the block, namely ECB mode
-def encrypt(key_bytes, plain_bytes):
+def AES_encrypt(key_bytes=None, plain_bytes=None):
     # Make sure inputs are converted to byte arrays
     key_bytes = bytes(key_bytes)
     plain_bytes = bytes(plain_bytes)
@@ -429,9 +430,11 @@ def encrypt(key_bytes, plain_bytes):
     shift_rows(state)
     add_round_key(state, expanded_keys, rounds)
 
-    return states
+    return state
 
-if __name__ == "__main__":
+def test_key_expansion():
+    print("Checking for key expansion function")
+
     # FIPS-197 Appendix A A.1
     k_b = bytes([0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c])
     w = key_expansion(k_b)
@@ -444,6 +447,7 @@ if __name__ == "__main__":
         r = "".join(format(p, "02x") for p in k)
         print(i, r)
 
+    # FIPS-197 Appendix A A.3
     k_256 = bytes([0x60, 0x3d, 0xeb, 0x10, 0x15, 0xca, 0x71, 0xbe, 0x2b, 0x73, 0xae, 0xf0, 0x85, 0x7d, 0x77, 0x81,
                     0x1f, 0x35, 0x2c, 0x07, 0x3b, 0x61, 0x08, 0xd7, 0x2d, 0x98, 0x10, 0xa3, 0x09, 0x14, 0xdf, 0xf4  ])
 
@@ -457,3 +461,34 @@ if __name__ == "__main__":
         r = "".join(format(p, "02x") for p in k)
         print(i, r)
 
+    print("Test completed, AES key expansion runs correctly!")
+
+def test_encrypt():
+    # FIPS-197 Appendix A C.1
+    plain_bytes = bytes([0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99 ,0xaa ,0xbb ,0xcc ,0xdd ,0xee ,0xff ])
+    key_bytes = bytes([0x00,0x01,0x02,0x03,0x04,0x05,0x06,0x07,0x08,0x09,0x0a,0x0b,0x0c,0x0d,0x0e,0x0f])
+    cipher_bytes = AES_encrypt(key_bytes, plain_bytes)
+
+    assert cipher_bytes[0]  == 0x69
+    assert cipher_bytes[1]  == 0xc4
+    assert cipher_bytes[2]  == 0xe0
+    assert cipher_bytes[3]  == 0xd8
+    assert cipher_bytes[4]  == 0x6a
+    assert cipher_bytes[5]  == 0x7b
+    assert cipher_bytes[6]  == 0x04
+    assert cipher_bytes[7]  == 0x30
+    assert cipher_bytes[8]  == 0xd8
+    assert cipher_bytes[9]  == 0xcd
+    assert cipher_bytes[10] == 0xb7
+    assert cipher_bytes[11] == 0x80
+    assert cipher_bytes[12] == 0x70
+    assert cipher_bytes[13] == 0xb4
+    assert cipher_bytes[14] == 0xc5
+    assert cipher_bytes[15] == 0x5a
+
+    print("Test completed, AES encryption runs correctly!")
+
+if __name__ == "__main__":
+    #test_key_expansion()
+    test_encrypt()
+    print("End of program")
