@@ -10,7 +10,7 @@
 # don't know much about side-channel attack against Python script ... so ... take your own risk using this
 
 # Static class of AES block cipher
-class AES_block_cipher(object):
+
 
     S_BOX = bytes([
         0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -69,6 +69,26 @@ class AES_block_cipher(object):
         0x0B, 0x08, 0x0D, 0x0E, 0x07, 0x04, 0x01, 0x02, 0x13, 0x10, 0x15, 0x16, 0x1F, 0x1C, 0x19, 0x1A
     ])
 
+    # NOTES: not all values in rcon are used
+    rcon = bytes([
+        0x8D, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A,
+        0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97, 0x35, 0x6A, 0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39,
+        0x72, 0xE4, 0xD3, 0xBD, 0x61, 0xC2, 0x9F, 0x25, 0x4A, 0x94, 0x33, 0x66, 0xCC, 0x83, 0x1D, 0x3A,
+        0x74, 0xE8, 0xCB, 0x8D, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36, 0x6C, 0xD8,
+        0xAB, 0x4D, 0x9A, 0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97, 0x35, 0x6A, 0xD4, 0xB3, 0x7D, 0xFA, 0xEF,
+        0xC5, 0x91, 0x39, 0x72, 0xE4, 0xD3, 0xBD, 0x61, 0xC2, 0x9F, 0x25, 0x4A, 0x94, 0x33, 0x66, 0xCC,
+        0x83, 0x1D, 0x3A, 0x74, 0xE8, 0xCB, 0x8D, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B,
+        0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A, 0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97, 0x35, 0x6A, 0xD4, 0xB3,
+        0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39, 0x72, 0xE4, 0xD3, 0xBD, 0x61, 0xC2, 0x9F, 0x25, 0x4A, 0x94,
+        0x33, 0x66, 0xCC, 0x83, 0x1D, 0x3A, 0x74, 0xE8, 0xCB, 0x8D, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20,
+        0x40, 0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A, 0x2F, 0x5E, 0xBC, 0x63, 0xC6, 0x97, 0x35,
+        0x6A, 0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39, 0x72, 0xE4, 0xD3, 0xBD, 0x61, 0xC2, 0x9F,
+        0x25, 0x4A, 0x94, 0x33, 0x66, 0xCC, 0x83, 0x1D, 0x3A, 0x74, 0xE8, 0xCB, 0x8D, 0x01, 0x02, 0x04,
+        0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36, 0x6C, 0xD8, 0xAB, 0x4D, 0x9A, 0x2F, 0x5E, 0xBC, 0x63,
+        0xC6, 0x97, 0x35, 0x6A, 0xD4, 0xB3, 0x7D, 0xFA, 0xEF, 0xC5, 0x91, 0x39, 0x72, 0xE4, 0xD3, 0xBD,
+        0x61, 0xC2, 0x9F, 0x25, 0x4A, 0x94, 0x33, 0x66, 0xCC, 0x83, 0x1D, 0x3A, 0x74, 0xE8, 0xCB, 0x8D
+    ])
+
     SBOX_inv = bytes([
         0x52, 0x09, 0x6A, 0xD5, 0x30, 0x36, 0xA5, 0x38, 0xBF, 0x40, 0xA3, 0x9E, 0x81, 0xF3, 0xD7, 0xFB,
         0x7C, 0xE3, 0x39, 0x82, 0x9B, 0x2F, 0xFF, 0x87, 0x34, 0x8E, 0x43, 0x44, 0xC4, 0xDE, 0xE9, 0xCB,
@@ -88,17 +108,17 @@ class AES_block_cipher(object):
         0x17, 0x2B, 0x04, 0x7E, 0xBA, 0x77, 0xD6, 0x26, 0xE1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0C, 0x7D
     ])
 
-    key_size_to_total_rounds {
+    key_size_to_total_rounds = {
         # in terms of bytes
-        16 : 10
-        24 : 12
+        16 : 10,
+        24 : 12,
         32 : 14
     }
 
     def valid_key_size_check(b):
         size = len(b)
 
-        if size not in [16, 24, 32]:
+        if size not in key_size_to_total_rounds:
             raise ValueError("Incorrect Key size. Must be 128 bits, 192 bits or 256 bits")
 
     def valid_aes_block_check(b):
@@ -108,6 +128,16 @@ class AES_block_cipher(object):
 
         if len(b) != 16:
             raise ValueError("Block bytes not 128 bits/16 bytes")
+
+    def sub_bytes(p_b):
+        for i,b in enumerate(p_b):
+            p_b[i] = S_BOX(b)
+
+    def sub_word(p_b):
+        sub_bytes(p_b)
+
+    def rot_word(p_b):
+        p_b[0], p_b[1], p_b[2], p_b[3] = p_b[3], p_b[0], p_b[1], p_b[2]
 
     def shift_rows(p_b):
         # Shift row in graph:
@@ -121,16 +151,15 @@ class AES_block_cipher(object):
         p_b[8] , p_b[9] , p_b[10], p_b[11] = p_b[10], p_b[11], p_b[8] , p_b[9]
         p_b[12], p_b[13], p_b[14], p_b[15] = p_b[15], p_b[12], p_b[13], p_b[14]
 
-     def mix_columns(p_b):
+    def mix_columns(p_b):
+        # Do special calculation on column basis, for all 4 columns in state(p_b) (as 4x4)
+
         for i in range(4):
             i0, i1, i2, i3 = i, i+4, i+8, i+12
             s0, s1, s2, s3 = p_b[i0], p_b[i1], p_b[i2], p_b[i3]
 
             p_b[i0], p_b[i1], p_b[i2], p_b[i3] = mix_columns_operation(s0, s1, s2, s3)
 
-    def sub_bytes(p_b):
-        for i,b in enumerate(p_b):
-            p_b[i] = S_BOX(b)
 
     def mix_columns_operation(s0, s1, s2, s3):
 
@@ -167,9 +196,71 @@ class AES_block_cipher(object):
 
         return (r0, r1, r2, r3)
 
-    def add_round_key(state):
-        # XOR with a column, with key expansion
-        pass
+    def word_XOR(w1, w2):
+        return bytearray([(b1^b2) for (b1,b2) in zip(w1,w2)])
+
+    def key_expansion(k_b):
+        # expand key to a long sequence of bytes for future uses
+
+        # k_b stands for key bytes
+        key_length = len(k_b)
+        key_length_in_words = key_length // 4 # nk in AES spec
+        rounds = key_size_to_total_rounds[key_length]
+        max_i = (rounds + 1) * 4
+
+        # each round we want 1 block (16 bytes, 4 words)
+        expanded_words = [None] * max_i
+
+        i = 0
+        while i < key_length_in_words:
+            expanded_words[i] = bytearray(k_b[i*4] , k_b[i*4 + 1], k_b[i*4 + 2], k_b[i*4 + 3])
+
+            # Example
+            # expanded_words[0] = word (byte[0] , byte[1] , byte[2] , byte[3] )
+            #
+            # For AES256, this starting loop will stop after this:
+            # expanded_words[7] = word (byte[28], byte[29], byte[30], byte[31])
+
+            i += 1
+
+        # i == key_length_in_blocks here now
+
+        while i < max_i:
+            temp = expanded_words[i-1][:]
+
+            if i % key_length_in_words == 0:
+                sub_word(rot_word(temp))
+                temp[0] ^= rcon[i]
+
+            elif (key_length_in_words > 6 and i % key_length_in_words == 4):
+                sub_word(temp)
+
+            expanded_words[i] = word_XOR(expanded_words[i-key_length_in_words], temp)
+            i += 1
+
+        return expanded_words
+
+    def add_round_key(state, expanded_keys, round_number):
+        # XOR everything in state, with key expansion
+        actual_index = round_number * 4
+
+        # [0:4], [4:8], [8:12] ...
+        wanted_keys = expanded_keys[actual_index : actual_index+4]
+
+        #   state          wanted_keys   (from expanded_keys)
+        #                  0   1   2   3 (index + n)
+        #
+        #  0  1  2  3      00  10  20  30
+        #  4  5  6  7      01  11  21  31
+        #  8  9 10 11      02  12  22  32
+        # 12 13 14 15      03  13  23  33
+
+        for i in range(4):
+            state[i]    ^= wanted_keys[i][0]
+            state[i+4]  ^= wanted_keys[i][1]
+            state[i+8]  ^= wanted_keys[i][2]
+            state[i+12] ^= wanted_keys[i][3]
+
 
     # This function just run the block, namely ECB mode
     def encrypt(key_bytes, plain_bytes):
@@ -182,23 +273,31 @@ class AES_block_cipher(object):
 
         rounds = key_size_to_total_rounds[len(key_bytes)]
 
-        # copy plain_bytes to states
+        # Start AES encryption here
         state = bytearray(plain_bytes)
+        expanded_keys = key_expansion(key_bytes)
 
-        add_round_key(state, )
+        add_round_key(state, expanded_keys, 0)
 
-        # rounds, depends on key size. k includes the last round, so -1
-        for r in range(rounds - 1):
+        # rounds, depends on key size. The index is correct -- expanded_keys[1] to expanded_keys[rounds-1]
+        for r in range(1, rounds):
             sub_bytes(state)
             shift_rows(state)
             mix_columns(state)
-            add_round_key()
+            add_round_key(state, expanded_keys, r)
 
         # last round, no mix column
         sub_bytes(state)
         shift_rows(state)
-        add_round_key(state, )
+        add_round_key(state, expanded_keys, rounds)
 
         return states
+
+
+k_b = bytes([0x2b, 0x7e, 0x15, 0x16, 0x28, 0xae, 0xd2, 0xa6, 0xab, 0xf7, 0x15, 0x88, 0x09, 0xcf, 0x4f, 0x3c])
+w = AES_block_cipher.key_expansion(k_b)
+
+for i, k in w:
+    print(i, k)
 
 
