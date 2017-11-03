@@ -89,8 +89,9 @@ def decryptXOR():
 
     # looping finished, see result
     print(max)
-    result_dict.sort()
-    print(result_dict)
+    # Put the unsortable dict into a list, then sort the list
+    sorted_result = sorted(result_dict.items(), key=lambda x: x[1], reverse=True)
+    print(sorted_result)
 
 
 if "__main__" == __name__:

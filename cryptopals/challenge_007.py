@@ -21,8 +21,9 @@ def getFile():
 
 def decryptAESFile():
     encryptedBytes = getFile()
-    print("cipher bytes size - ", len(encryptedBytes) )
-    keyBytes = bytearray("YELLOW SUBMARINE", "utf-8")
+    # print("type", type(encryptedBytes))
+    # print("cipher bytes size - ", len(encryptedBytes) )
+    keyBytes = bytes("YELLOW SUBMARINE", "utf-8")
 
     plainBytes = bytearray()
 
