@@ -32,6 +32,9 @@ def test_PKCS7_padding():
     except ValueError as e:
         print(e)
         print("Fail case passed - invalid bytes failed on remove padding")
+    else:
+        # No Exception raised - fail case failed
+        raise ValueError("Fail case failed - invalid bytes SHOULD fail on remove padding")
 
     print("pkcs7 testing completed, SeemsGood")
 
