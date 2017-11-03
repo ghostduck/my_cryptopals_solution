@@ -30,11 +30,19 @@ def test_PKCS7_padding():
         invalid_pkcs7_padding_bytes = bytes([5,4,3,2,0])
         PKCS7_remove_padding(invalid_pkcs7_padding_bytes)
     except ValueError as e:
-        print(e)
+        print("Error message: ", e)
         print("Fail case passed - invalid bytes failed on remove padding")
     else:
         # No Exception raised - fail case failed
         raise ValueError("Fail case failed - invalid bytes SHOULD fail on remove padding")
+
+    # Edge case: block_size = 1
+    strange_block = bytes([255,3,4,5,1,1])
+    padded_full_byte = PKCS7_add_padding(strange_block, 1)
+
+    # extra 1 in the end
+    assert padded_full_byte == bytes([255,3,4,5,1,1,1])
+    assert PKCS7_remove_padding(padded_full_byte) == strange_block
 
     print("pkcs7 testing completed, SeemsGood")
 

@@ -3,10 +3,10 @@ def PKCS7_add_padding(b, block_size=14):
     if block_size >= 256:
         raise ValueError("Block size too large to pad, needs to be within 255")
 
-    # Not sure if we need to block size of 0 or 1 ...
-    # block size of 1 seems equal to null in null-terminated string, with value of 1 in the end
-    if block_size <= 1:
-        raise ValueError("Block size too small to pad, needs to be at least 2")
+    # block size of 1 seems similar to null in null-terminated string, with value of 1 at the end while allowing 1s in between...
+    # strange, but still valid actually
+    if block_size <= 0:
+        raise ValueError("Block size too small to pad, needs to be at least 1")
 
     # b is byte to pad
 
