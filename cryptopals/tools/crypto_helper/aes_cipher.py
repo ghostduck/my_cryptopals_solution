@@ -185,7 +185,7 @@ mul_table_of_14 = bytes([
 ])
 
 key_size_to_total_rounds = {
-    # in terms of bytes
+    # size is in terms of bytes, note that we have round 0 for key expansion
     16 : 10,
     24 : 12,
     32 : 14
@@ -561,13 +561,9 @@ def simple_enc_dec_test():
 
     print("Test completed, AES decryption and encryption both runs correctly!")
 
-def print_bytes_helper(description, b_s):
-    show_byte_message = "".join("{0:02x}".format(k) for k in b_s)
-    print(description, show_byte_message)
-
 if __name__ == "__main__":
-    #test_key_expansion()
-    #test_encrypt()
-    #test_decrypt()
+    test_key_expansion()
+    test_encrypt()
+    test_decrypt()
     simple_enc_dec_test()
     print("End of program")
