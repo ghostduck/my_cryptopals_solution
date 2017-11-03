@@ -441,23 +441,23 @@ print(gf_2n_mul(0x53,0xCA)) # 1
 
 test_mix_columns_operation()
 
-generate_gf_2n_mul_inv_result_bruteforce()
-generate_gf_2n_mul_inv_result_bruteforce()
+#generate_gf_2n_mul_inv_result_bruteforce()
+#generate_gf_2n_mul_inv_result_gen_table_lookup()
 
-generate_gf_2n_expo_table_of_3()
-generate_gf_2n_log_table_of_3()
+#generate_gf_2n_expo_table_of_3()
+#generate_gf_2n_log_table_of_3()
 
-generate_mul_table_of(2)
-generate_mul_table_of(3)
-#generate_mul_table_of(9)
-#generate_mul_table_of(11)
-#generate_mul_table_of(13)
-#generate_mul_table_of(14)
+#generate_mul_table_of(2)
+#generate_mul_table_of(3)
+#generate_mul_table_of(9)  #0x9
+#generate_mul_table_of(11) #0xb
+#generate_mul_table_of(13) #0xd
+#generate_mul_table_of(14) #0xe
 
-create_sbox()
-create_sbox_inverse()
+#create_sbox()
+#create_sbox_inverse()
 
-create_rcon()
+#create_rcon()
 
 #generate_gf_2n_log_table_of_3()
 #print(gf_2n_mul_faster(3,7) == gf_2n_mul_faster(7,3) == gf_2n_mul(3,7) == gf_2n_mul(7,3))
