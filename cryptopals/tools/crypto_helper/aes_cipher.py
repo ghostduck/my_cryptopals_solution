@@ -1,14 +1,21 @@
 # Pure Python3 AES
 
+# This file contains the AES block encryption/decryption.
+
+# Input :
+# bytes array of key with size of 16/24/32 as (key_bytes),
+# bytes array of length 16 (plain_bytes or cipher_bytes)
+
+# Output :
+# byte array of cipher bytes or plain bytes with size of 16, which is the block size
+
 # I know I am reinventing the wheel, AGAIN, but the AES blocks seems will be used in another challenege
 # and I don't want to install extra library in my poor Windows machine (already out of space), so I will
 # just create another Pure Python3 AES
 
-# Need to consider - keysize, mode of operations
-# params IV, key in bytes, plaintext in bytes, mode and keysize
-
 # don't know much about side-channel attack against Python script ... so ... take your own risk using this
 
+# expect other files/modules will just import AES_encrypt, AES_decrypt to use this
 
 # tables for encryption
 S_BOX = bytes([
