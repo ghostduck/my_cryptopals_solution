@@ -1,4 +1,5 @@
 from tools.crypto_helper import AES_decrypt
+from tools.crypto_helper import AES
 from itertools import zip_longest
 import base64
 
@@ -29,7 +30,8 @@ def decryptAESFile():
 
     for i in grouped(encryptedBytes, 16):
         c_p = bytearray(i)
-        plainBytes.extend(AES_decrypt(keyBytes, c_p))
+        #plainBytes.extend(AES_decrypt(keyBytes, c_p))
+        plainBytes.extend(AES.ECB.decrypt(keyBytes, c_p))
 
     plaintext = plainBytes.decode("utf-8")
     print(plaintext)
