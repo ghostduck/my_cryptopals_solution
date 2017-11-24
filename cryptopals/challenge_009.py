@@ -30,8 +30,8 @@ def test_PKCS7_padding():
         invalid_pkcs7_padding_bytes = bytes([5,4,3,2,0])
         PKCS7_remove_padding(invalid_pkcs7_padding_bytes)
     except ValueError as e:
+        print("Fail case passed - invalid bytes failed on remove padding, check the error message below")
         print("Error message: ", e)
-        print("Fail case passed - invalid bytes failed on remove padding")
     else:
         # No Exception raised - fail case failed
         raise ValueError("Fail case failed - invalid bytes SHOULD fail on remove padding")
