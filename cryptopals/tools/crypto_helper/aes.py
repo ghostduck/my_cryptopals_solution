@@ -6,6 +6,9 @@ from .padding_helper import PKCS7_add_padding, PKCS7_remove_padding
 from abc import ABC, abstractmethod
 
 # helper methods -- seems module functions are good enough
+# Altnertaives: Put them inside subclasses, but they would have to call ECB.block_XOR() in ECB.encrypt()/decrypt() ... That feels strange
+# Users won't call AES.CBC.block_XOR(), so there are no good reasons to put these helper methods inside class
+
 def check_iv_valid(iv):
     if len(iv) != 16:
         raise ValueError("Block bytes not 128 bits/16 bytes")
@@ -29,17 +32,45 @@ class AES_Base(ABC):
         pass
         #raise NotImplementedError("Don't use base class of AES_Base directly, implement own decrypt() instead")
 
+
 class ECB(AES_Base):
     @classmethod
     def encrypt(cls, key_bytes=None, plain_bytes=None):
-        return AES_encrypt(key_bytes, plain_bytes)
+        # padding first
+        plain_bytes = PKCS7_add_padding(plain_bytes, block_size=16)
+
+        if len(plain_bytes) % 16 != 0:
+            raise ValueError("Some block does not contain 128 bits/16 bytes")
+
+        cipher_bytes = bytearray()
+
+        for start in range(0, len(plain_bytes), 16):
+            end = start + 16
+
+            block_bytes = AES_encrypt(key_bytes, plain_bytes[start:end])
+            cipher_bytes.extend(block_bytes)
+
+        return cipher_bytes
 
     @classmethod
     def decrypt(cls, key_bytes=None, cipher_bytes=None):
-        return AES_decrypt(key_bytes, cipher_bytes)
+        if len(cipher_bytes_bytes) % 16 != 0:
+            raise ValueError("Some block does not contain 128 bits/16 bytes")
+
+        plain_bytes = bytearray()
+
+        for start in range(0, len(cipher_bytes), 16):
+            end = start + 16
+
+            block_bytes = AES_decrypt(key_bytes, cipher_bytes[start : end])
+            plain_bytes.extend(block_bytes)
+
+        plain_bytes = PKCS7_remove_padding(plain_bytes)
+        return plain_bytes
+
 
 class CBC(AES_Base):
-    # NOTE: Decorators are not inherited!!
+    # NOTE: Decorators are NOT inherited!!
     @classmethod
     def encrypt(cls, key_bytes=None, plain_bytes=None, iv=None):
         iv = bytes(iv)
@@ -50,12 +81,10 @@ class CBC(AES_Base):
         # encrypt starts here
         cipher_bytes = bytearray()
 
-        # Example: size 48 --> 0,1,2
-        for i in range(len(plain_bytes) // 16):
-            start = i * 16
+        for start in range(0, len(plain_bytes), 16):
             end = start + 16
 
-            block_bytes = block_XOR(plain_bytes[start : end], iv)
+            block_bytes = block_XOR(plain_bytes[start:end], iv)
             # Example: 0:16, 16:32, 32:48 ...
 
             # the output is also the iv for next block
@@ -73,8 +102,7 @@ class CBC(AES_Base):
         # decrypt starts here
         plain_bytes = bytearray()
 
-        for i in range(len(cipher_bytes) // 16):
-            start = i * 16
+        for start in range(0, len(cipher_bytes), 16):
             end = start + 16
 
             block_bytes = cipher_bytes[start : end]
@@ -86,3 +114,17 @@ class CBC(AES_Base):
 
         plain_bytes = PKCS7_remove_padding(plain_bytes)
         return plain_bytes
+
+class ECB_single_block(AES_Base):
+    # NOTE: No padding for this, since I only expect to encrypt exactly 1 block here
+
+    # If I add padding, then another 16 byte block will also needs to be
+    # encrypted as well when plaintext is already 16 bytes
+
+    @classmethod
+    def encrypt(cls, key_bytes=None, plain_bytes=None):
+        return AES_encrypt(key_bytes, plain_bytes)
+
+    @classmethod
+    def decrypt(cls, key_bytes=None, cipher_bytes=None):
+        return AES_decrypt(key_bytes, cipher_bytes)

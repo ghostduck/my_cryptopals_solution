@@ -30,8 +30,10 @@ def decryptAESFile():
 
     for i in grouped(encryptedBytes, 16):
         c_p = bytearray(i)
-        #plainBytes.extend(AES_decrypt(keyBytes, c_p))
-        plainBytes.extend(AES.ECB.decrypt(keyBytes, c_p))
+        # plainBytes.extend(AES_decrypt(keyBytes, c_p))
+        plainBytes.extend(AES.ECB_single_block.decrypt(keyBytes, c_p))
+        # Note: There are PKCS7 padding of 4 bytes at the end
+        # print("Decrypted line: {}".format(AES.ECB_single_block.decrypt(keyBytes, c_p)))
 
     plaintext = plainBytes.decode("utf-8")
     print(plaintext)
