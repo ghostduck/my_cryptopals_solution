@@ -95,11 +95,15 @@ def encryption_oracle(injected_bytes=None):
     return cipher_bytes
 
 def create_query_dict_from_oracle(previous_n_bytes, block_size):
+    """
+        Use previous_n_bytes + 1 byte to feed a block to oracle, then return a
+        dictionary of output block to value of last plain bytes.
+    """
     limit = block_size - 1
 
     # assert n == limit, 15 for AES
     if len(previous_n_bytes) != limit:
-        raise ValueError("We need the last {} bytes to create attacking dictionary".format(limit))
+        raise ValueError("We need exactly last {} bytes to create attacking dictionary".format(limit))
 
     atk_dict = dict()
 
@@ -107,15 +111,17 @@ def create_query_dict_from_oracle(previous_n_bytes, block_size):
         #  XX  XX  XX  XX
         #  XX  XX  XX  XX
         #  XX  XX  XX  XX
-        #  XX  XX  XX '00' <- the byte we want to find, which is the value in atk_dict
+        #  XX  XX  XX '??' <- ?? is the byte we want to find, which is the value in atk_dict. XX are from previous_n_bytes
 
-        forge_plain_block = bytes(previous_n_bytes + bytes([i]))
+        forge_plain_block = previous_n_bytes + bytes([i])
+
+        # we want the first block only, then store result to dict
         output_block = bytes(encryption_oracle(forge_plain_block)[0:block_size])
         atk_dict[output_block] = i
 
     return atk_dict
 
-def something():
+def recover_bytes_from_orcale(block_size, plainbyte_size):
     # Inject bytes to push:
     # Notation 0A = block 0, at position 10 (0x0A)
     #  Plain block 0  | Plain block 1  |
@@ -124,14 +130,18 @@ def something():
     #  02  06  0A  0E | 12  16  1A  1E |
     #  03  07  0B  0F | 13  17  1B  1F |
 
-    # Find 1st byte in block 0 by injecting 15 bytes:
+    # The spirit of the attck: Push the byte we want to recover to the end of block,
+    # then we pad and use the orcale to find the value (1 out of 256 bytes).
+
+    # Find 1st byte in block 0 by injecting 15 bytes: (15 bytes for all 1st byte in all blocks)
     #
     #  XX  XX  XX  XX | 01  05  09  0D |
     #  XX  XX  XX  XX | 02  06  0A  0E | ...
     #  XX  XX  XX  XX | 03  07  0B  0F |
     #  XX  XX  XX '00'| 04  08  0C  10 |
 
-    # Now we can generate all the 256 blocks of 15 XX + 1 extra byte "using the oracle", then find the 1st byte
+    # Now we can generate all the 256 blocks of 15 XX + 1 extra byte "using the oracle". (create_query_dict_from_oracle())
+    # Then we check the output of the block against our dictionary (which is also created by the oracle) to get the plain byte.
 
     # To find the 2nd byte, we inject 14 bytes:
     # Don't forget we already recovered 00
@@ -155,11 +165,51 @@ def something():
     #  XX  XX  XX  XX | 03  07  0B  0F |
     #  XX  XX  XX  00 | 04  08  0C '10'|
 
-    # In other words, we can decrypt block i if we have the oracle and block i-1.
-    # To be concise, we can recover byte i with the 15 bytes before it. (15 = block size - 1)
-    # For block 0, we can just forge the arbitrary 15 bytes before it too.
+    # In this case, those XX can be 01,02,... anything. We don't really care about their value. We only want something to be padded.
+    # In other words, the padding block and attack dictionary are the same for block 0. For block 1 and so on, they are different.
+    # For the injected bytes, they can be of any value as long as the length is correct.
 
-    pass
+    # For 2nd byte in block 2:
+    #  XX  XX  XX  XX | 02  06  0A  0E |
+    #  XX  XX  XX  XX | 03  07  0B  0F | ...
+    #  XX  XX  XX  00 | 04  08  0C  10 |
+    #  XX  XX  XX  01 | 05  09  0D '11'|
+
+    # To sum up, we can decrypt block i if we have the oracle and block i-1.
+    # To be concise, we can recover byte i with the 15 bytes before it. (15 = block size - 1)
+    # For block 0, we can just craft an arbitrary 15 bytes before it.
+
+    plain_bytes = bytearray()
+    pad_size = block_size - 1
+
+    for i in range(plainbyte_size):
+        # setup
+        inject_size = pad_size - (i % block_size) # 0-15
+        bytes_to_inject = bytearray('9' * inject_size, encoding="utf-8")
+
+        if i < pad_size:
+            # arbitrary 15 bytes, needs to contain known bytes if any
+            previous_bytes = bytes_to_inject + plain_bytes
+        else:
+            previous_bytes = plain_bytes[-pad_size:]
+
+        atk_dict = create_query_dict_from_oracle(previous_bytes, block_size)
+
+        # Start the attack from here
+        # Feed padding bytes into the blackbox
+        output = encryption_oracle(bytes_to_inject)
+
+        # Check result against dict to find the byte
+        # [start:end] refers to the whole block
+        start = (i // block_size) * block_size # 0,16,32 ...
+        end = start + block_size
+
+        bytes_to_check = bytes(output[start:end])
+        plain_byte = atk_dict[bytes_to_check]
+
+        plain_bytes.append(plain_byte)
+
+    return plain_bytes
 
 def byte_at_a_time_ECB_decryption():
     # Aim: Decrypt AES ECB with the oracle/blackbox only!
@@ -170,15 +220,27 @@ def byte_at_a_time_ECB_decryption():
 
     # Step 2: Check if ECB ... although we already know it
     duplicated_injected_bytes = bytearray('9' * 48, encoding="utf-8")
-    c_bytes_to_test_ECB = encryption_oracle(duplicated_injected_bytes)
+    dup_bytes_to_test_ECB = encryption_oracle(duplicated_injected_bytes)
 
-    if is_AES_ECB(c_bytes_to_test_ECB):
-        recovered_bytes = bytearray()
+    if is_AES_ECB(dup_bytes_to_test_ECB):
+        print("Starting to recover bytes ... this takes quite long")
+        # About complexity: To recover 1 byte, we need to call the orcale 256 times to create a dictionary.
+        # Then we feed in a block to it, finally we check against the dictionary and get the value.
+        #
+        # Each time we call the oracle, it will encrypt everything ... which is quite slow,
+        # even though we only want first block for the dictionary.
+        recovered_bytes = recover_bytes_from_orcale(block_size, plainbyte_size)
 
-        pass
+        # Byte to string
+        recovered_string = str(recovered_bytes.decode('utf-8'))
 
+        print("See if the recovered byte the same as plain byte")
+        plain_bytes = bytes(base64.standard_b64decode(b64_str))
 
-        # Repeat for the remaining bytes
+        assert plain_bytes == bytes(recovered_bytes)
+        print("I get them correctly PogChamp. Check the result")
+        print(recovered_string)
+
     else:
         raise ValueError("Not ECB -- can't continue")
 
