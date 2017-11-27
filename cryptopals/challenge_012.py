@@ -3,7 +3,6 @@ from secrets import token_bytes
 from collections import Counter
 
 from tools.crypto_helper import AES
-from tools.random_helper import generate_random_bytes
 
 # same 128-bit key to be used many times in this practice -- DON'T DO THIS IN REAL/PRODUCTION
 random_AES_key_size = 16

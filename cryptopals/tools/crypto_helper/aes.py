@@ -54,7 +54,7 @@ class ECB(AES_Base):
 
     @classmethod
     def decrypt(cls, key_bytes=None, cipher_bytes=None):
-        if len(cipher_bytes_bytes) % 16 != 0:
+        if len(cipher_bytes) % 16 != 0:
             raise ValueError("Some block does not contain 128 bits/16 bytes")
 
         plain_bytes = bytearray()
