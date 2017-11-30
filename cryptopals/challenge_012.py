@@ -68,12 +68,12 @@ def get_cipher_info():
     # out of loop but still cannot find it
     raise ValueError("Ciphertext size unchanged in loop, need to increase upper limit")
 
-def is_AES_ECB(cipher_bytes):
+def is_AES_ECB(cipher_bytes, block_size):
     # copy from challenege 11
     ctr = Counter()
 
-    for start in range(0, len(cipher_bytes), 16):
-        end = start + 16
+    for start in range(0, len(cipher_bytes), block_size):
+        end = start + block_size
 
         output_block_byte = bytes(cipher_bytes[start:end])
         ctr[output_block_byte] += 1
@@ -221,7 +221,7 @@ def byte_at_a_time_ECB_decryption():
     duplicated_injected_bytes = bytearray('9' * 48, encoding="utf-8")
     dup_bytes_to_test_ECB = encryption_oracle(duplicated_injected_bytes)
 
-    if is_AES_ECB(dup_bytes_to_test_ECB):
+    if is_AES_ECB(dup_bytes_to_test_ECB, block_size):
         print("Starting to recover bytes ... this takes quite long")
         # About complexity: To recover 1 byte, we need to call the orcale 256 times to create a dictionary.
         # Then we feed in a block to it, finally we check against the dictionary and get the value.
