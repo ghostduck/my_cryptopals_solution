@@ -1,4 +1,4 @@
-from tools.crypto_helper import PKCS7_add_padding, PKCS7_remove_padding
+from tools.crypto_helper import PKCS7_add_padding, PKCS7_remove_padding, PKCS7PaddingError
 
 def test_PKCS7_padding():
     text = "YELLOW SUBMARINE"
@@ -29,7 +29,7 @@ def test_PKCS7_padding():
     try:
         invalid_pkcs7_padding_bytes = bytes([5,4,3,2,0])
         PKCS7_remove_padding(invalid_pkcs7_padding_bytes)
-    except ValueError as e:
+    except PKCS7PaddingError as e:
         print("Fail case passed - invalid bytes failed on remove padding, check the error message below")
         print("Error message: ", e)
     else:
