@@ -1,3 +1,8 @@
+class PKCS7PaddingError(Exception):
+    """ Raise on PKCS7 padding does not match the last byte we found"""
+    pass
+
+
 # block_size is in terms of byte
 def PKCS7_add_padding(b, block_size=16):
     if block_size >= 256:
@@ -27,7 +32,7 @@ def PKCS7_remove_padding(b, strict_checking=True):
 
     # Not sure about this ... just return b, only raise if strict_checking == True, or forbids last_byte to be 0
     if last_byte < 1:
-        raise ValueError("Last byte needs to be at least 1 for PKCS7 padding")
+        raise PKCS7PaddingError("Last byte needs to be at least 1 for PKCS7 padding")
 
     if strict_checking:
         # check all those bytes are padding bytes or not
@@ -36,8 +41,8 @@ def PKCS7_remove_padding(b, strict_checking=True):
 
         # Why not using all()? Because I don't want to return earlier ...
         # But I think it doesn't matter since it is only used for removing plaintext padding
-        #if not all(v == last_byte for v in padding_bytes):
+        # if not all(v == last_byte for v in padding_bytes):
         if padding_bytes != bytes([last_byte]) * last_byte :
-            raise ValueError("Invalid padding for PKCS7")
+            raise PKCS7PaddingError("Invalid padding for PKCS7")
 
     return  b[0: -last_byte]
