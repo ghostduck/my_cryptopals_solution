@@ -65,7 +65,8 @@ def tamper_encrypted_bytes(cipher_bytes):
 
     # Explanation:
     # To decrypt block 2 (0 based index), the code is (ECB decrypt(block 2, key) XOR block 1)
-    # We don't have key here. So we have to tamper block 1 (and it will be undecryptable, but we don't care) to make the result we want.
+    # We don't have key here. So we have to tamper block 1 to make the result we want.
+    # For that tampered block1, it will be decrypted to random bytes, but we don't care.
     block_index_to_change = 2
 
     # As long as we know some info about the format of plaintext, we can tamper it bit-by-bit to change the output.
@@ -88,10 +89,10 @@ def tamper_encrypted_bytes(cipher_bytes):
     # We can't change block 3.
 
     # Shown in formula:
-    # Plaintext = last block XOR decrypted bytes (block 3 after AES), which is the same as
+    # Plaintext = last block XOR decrypted bytes (block 3 after AES, NOT the plaintext), which is the same as
     # decrypted bytes = last block XOR Plaintext
     #
-    # We can't change decrypted bytes, so we have to change last block or plaintext
+    # We can't change block 3 and decrypted bytes, so we have to change last block or plaintext
     # If we knows plaintext, we can cancel them out and forge a outcome.
     #
     # (1)
@@ -103,8 +104,8 @@ def tamper_encrypted_bytes(cipher_bytes):
     #
     # So knowing anything about plaintext, or see the plaintext itself can help a lot on forging the result.
     #
-    # If we have the decryption blackbox (key included but we don't know the value and IV), we can get the plaintext, so
-    # we can actually forge the result we want too.
+    # If we have the decryption blackbox (key and IV included but we don't know their value), we can get the plaintext.
+    # So we can actually forge the result we want too.
 
     # NOTE: pass a copy of cipher_bytes, since we don't want to change the original content
     forged_blocks = forge_cipher_blocks(cipher_bytes[:], expected_rigged_change, block_index_to_change)
