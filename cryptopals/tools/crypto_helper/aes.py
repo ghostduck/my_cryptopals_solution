@@ -32,6 +32,50 @@ class AES_Base(ABC):
         pass
         #raise NotImplementedError("Don't use base class of AES_Base directly, implement own decrypt() instead")
 
+class CTR(AES_Base):
+    @classmethod
+    def encrypt(cls, counter, key_bytes=None, plain_bytes=None):
+        """
+            AES Counter mode:
+            Treat counter as plaintext, encrypt it with key_bytes. Then use the output to XOR part of plain_bytes.
+            If there are still plain_bytes left, increment counter then encrypt and XOR again.
+
+            Counter mode can be used as stream cipher.
+
+            counter should be an iteratable.
+            next(counter) gives us the 16 bytes, then increment itself.
+            Check challenge_018.py for a simple counter, just a function with yield is enough.
+
+            Function returns the whole encrypted bytes of plain_bytes.
+        """
+        # NOTE1: Not optimized for parallelism ... don't know how to do that actually
+        # NOTE2: I can't find any spec/reference about the recommended way for counter (plaintext block for AES) and the way to increment it.
+        #        So just use a high-level next() here.
+        #        The counter object can be quite complicated -- it can have different format and endian issues.
+
+        output = bytearray()
+
+        for start in range(0, len(plain_bytes), 16):
+            end = start + 16
+
+            # Python doesn't raise out of bound errors for this, great
+            plain_bytes_as_a_block = plain_bytes[start:end]
+            block_bytes = AES_encrypt(key_bytes, next(counter))
+
+            output.extend(cls.block_XOR_for_CTR(block_bytes, plain_bytes_as_a_block))
+
+        return output
+
+    @classmethod
+    def decrypt(cls, counter, key_bytes=None, cipher_bytes=None):
+        # decryption is same as encryption in Counter Mode
+        return cls.encrypt(counter, key_bytes, cipher_bytes)
+
+    @classmethod
+    def block_XOR_for_CTR(cls, ba1, ba2):
+        # Different from block_XOR(): It doesn't check length.
+        # This function just return shorter output if one of the byte array is shorter
+        return bytearray([(b1^b2) for (b1,b2) in zip(ba1,ba2)])
 
 class ECB(AES_Base):
     @classmethod
