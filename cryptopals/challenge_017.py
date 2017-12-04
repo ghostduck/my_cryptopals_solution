@@ -85,6 +85,44 @@ def recover_byte_from_oracle(block_bytes, forged_block, target_index, PKCS7_padd
 
     raise ValueError("Can't form a valid PKCS7 block even after 256 tries? Please debug")
 
+def special_recover_last_byte(block_bytes):
+    # This special function is similar to recover_byte_from_oracle(), but have some special condition
+    # Inspired from https://www.youtube.com/watch?v=Cb1LO9K3Igg (about 1:25:00) by Filippo Valsorda
+
+    # Problem 1 : We pass forged block(last block) with all 0s, but the plaintext has a valid padding.
+    # It means it is a block already ending with 1 of 01, 2 of 02 ... and don't forget the outcome is the same as the intermediate output
+
+    # Problem 2 : We have a correct padding, but we are not sure if it is single 01, or other paddings like 02 02, 03 03 03 ...
+    # For example, * 02 01 and * 02 02 are both valid paddings. * 03 03 03 and * 03 03 01 too.
+    # We want 01 only.
+
+    # The flow:
+    # Problem 1:
+    # Pass all 0s as previous block -> Keep changing last byte normally until we find a valid padding -- Problem 2
+    #
+    # Problem 2:
+    # We specify that last byte, then change second last byte -> Try all 256 second last byte -> All correct -> Last byte is correct
+    #                                                                                         -> Anything is wrong -> Nope, try again
+
+    forged_block = bytes([0] * 16)
+
+    # Problem 1
+    for changing_forged_block in create_all_possible_blocks(forged_block, 15):
+        fake_CBC_blocks = changing_forged_block + block_bytes
+
+        if has_valid_padding(fake_CBC_blocks):
+            # Problem 2
+            for changing_forged_block2 in create_all_possible_blocks(changing_forged_block, 14):
+                fake_CBC_blocks2 = changing_forged_block2 + block_bytes
+
+                if not has_valid_padding(fake_CBC_blocks2):
+                    break
+
+                # All 1 + 256 cases pass! That must be padding of lonely 1
+                return changing_forged_block[15] ^ 1
+
+    raise ValueError("Can't form a valid PKCS7 block in special_recover_last_byte() even after 256 tries? Please debug")
+
 def attack_on_block(block_bytes, previous_block_bytes):
     # Clearly explained on how to attack 1 block https://robertheaton.com/2013/07/29/padding-oracle-attack/
 
@@ -148,8 +186,6 @@ def attack_on_block(block_bytes, previous_block_bytes):
         # so the 2nd last byte in plaintext would also need to be 02. (hopefully is 1/256)
         # And the last byte we try to brute force would also need to be 02. (1/256)
 
-        # Seems there is no 100% correct solution. You can always match other way of padding by an extremely low chance.
-
         wanted_result = bytearray([0] * (AES_block_size - i) + [i] * i)
         forged_block = block_XOR(intermediate_result, wanted_result) # setup forged = PADDING XOR intermediate
 
@@ -157,7 +193,8 @@ def attack_on_block(block_bytes, previous_block_bytes):
 
         # recover bytes backward -- we discover the last byte first in this attack
         target_index = AES_block_size - i
-        intermediate_result[target_index] = recover_byte_from_oracle(block_bytes[:], forged_block[:], target_index, i)
+        recovered_byte = recover_byte_from_oracle(block_bytes[:], forged_block[:], target_index, i) if i != 1 else special_recover_last_byte(block_bytes[:])
+        intermediate_result[target_index] = recovered_byte
 
     plain_bytes = block_XOR(intermediate_result, previous_block_bytes)
     return plain_bytes
@@ -209,10 +246,7 @@ def CBC_padding_oracle_attack():
 
         block_bytes = cipher_bytes[start: end]
 
-        if start == 0:
-            last_block = iv_bytes
-        else:
-            last_block = cipher_bytes[last_block_start:last_block_end]
+        last_block = iv_bytes if start == 0 else cipher_bytes[last_block_start:last_block_end]
 
         plain_bytes.extend(attack_on_block(block_bytes, last_block))
 
