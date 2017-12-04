@@ -46,11 +46,16 @@ def has_valid_padding(cipher_bytes):
         # Actually IV doesn't matter in this attack
         plain_bytes = AES.CBC.decrypt(cipher_bytes=cipher_bytes, key_bytes=key_bytes, iv=iv_bytes)
     except PKCS7PaddingError as e:
-        debug_print(e)
+        # debug_print(e)
         return False
 
     # NOTE: plain_bytes are without paddings now
-    # print_bytes_with_description(plain_bytes, "Find a valid padding block! ")
+    # print_bytes_with_description(plain_bytes, "Find a valid padding block! This is the result after removing the padding")
+
+    # More detailed explanation:
+    # When it returns True (which means no Exception is raised in real-world attack example), it tells us it has a valid padding.
+    # We have control on the input (only 2 block CBC). Return True here actually telling the attacker the block ends with 1 of 01,
+    # 2 of 02, 3 of 03 ... By knowing the partial actual result, we can obtain the intermediate object! It is just an XOR!
     return True
 
 def CBC_encrypt_secret_str(s_str):
@@ -143,7 +148,7 @@ def attack_on_block(block_bytes, previous_block_bytes):
         # so the 2nd last byte in plaintext would also need to be 02. (hopefully is 1/256)
         # And the last byte we try to brute force would also need to be 02. (1/256)
 
-        # Seems there is no 100% correct solution. Since you can always match other way of padding by an extremely low chance.
+        # Seems there is no 100% correct solution. You can always match other way of padding by an extremely low chance.
 
         wanted_result = bytearray([0] * (AES_block_size - i) + [i] * i)
         forged_block = block_XOR(intermediate_result, wanted_result) # setup forged = PADDING XOR intermediate
@@ -191,16 +196,23 @@ def CBC_padding_oracle_attack():
     cipher_bytes = CBC_encrypt_secret_str(secret_str)
     plain_bytes = bytearray()
 
-    print("Starting the attack, may take some time ...")
+    print("Starting the CBC padding oracle attack, may take some time ...")
 
-    for start in range(AES_block_size, len(cipher_bytes), AES_block_size): # 16, 32, 48 ... we can't decrypt 1st block without IV
+    # Embarrassing update -- question say that we can have direct access to IV
+    # If we don't have IV, we have to skip the 1st block. Then need to guess a secret string
+    # from random_secret_strs, and check if any ends with what we found (check the old commit to see the changes LUL)
+    for start in range(0, len(cipher_bytes), AES_block_size):
         end = start + AES_block_size
 
         last_block_start = start - AES_block_size
         last_block_end =  last_block_start + AES_block_size
 
         block_bytes = cipher_bytes[start: end]
-        last_block = cipher_bytes[last_block_start:last_block_end]
+
+        if start == 0:
+            last_block = iv_bytes
+        else:
+            last_block = cipher_bytes[last_block_start:last_block_end]
 
         plain_bytes.extend(attack_on_block(block_bytes, last_block))
 
@@ -208,12 +220,12 @@ def CBC_padding_oracle_attack():
     plain_bytes = PKCS7_remove_padding(plain_bytes) # we also recover the PKCS7 padding too, so need to remove it ourself
     plain_str = plain_bytes.decode("utf-8")
 
-    result = find_string_ends_with(plain_str)
+    # result = find_string_ends_with(plain_str)
 
-    assert result == secret_str
+    assert plain_str == secret_str
     print("We did it!! Padding Oracle attack works!! Print the string we found and b64 string value now")
     print("What we decrypted: {}".format(plain_str))
-    print("Inside that b64 string: {}".format(base64.standard_b64decode(result).decode("utf-8")))
+    print("Inside that b64 string: {}".format(base64.standard_b64decode(plain_str).decode("utf-8")))
 
 if "__main__" == __name__:
     CBC_padding_oracle_attack()
