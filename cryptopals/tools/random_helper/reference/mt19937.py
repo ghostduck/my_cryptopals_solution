@@ -1,4 +1,8 @@
 #!/bin/env python
+
+# copy from https://github.com/bmurray7/mersenne-twister-examples/blob/master/python-mersenne-twister.py
+# I did check this code in order to write the MT19937.py
+
 def _int32(x):
     # Get the 32 least significant bits.
     return int(0xFFFFFFFF & x)
