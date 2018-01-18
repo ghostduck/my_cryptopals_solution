@@ -27,7 +27,7 @@ class MT19937(object):
     def __init__(self, seed=None):
         self.setup()
         if seed is not None:
-            self.init_genrand(s)
+            self.init_genrand(seed)
         else:
             print("WARNING: Seed is not provided. Please ensure you setup with init_genrand(seed) or init_by_array(array)")
 
@@ -107,7 +107,7 @@ class MT19937(object):
             self.init_genrand(5489)
 
         for i in range(N):  # 0 - 623
-            # don't know why original C code didn't use mod, but use 3 for loop with different indices instead
+            # don't know why original C code didn't use mod, but used 3 for-loops with different indices instead...
             current_first_bit = self._mt[i] & UPPER_MASK
             next_remaining_bits = self._mt[(i+1)%N] & LOWER_MASK
 
@@ -116,3 +116,17 @@ class MT19937(object):
             self._mt[i] = self._mt[(i+M)%N] ^ (y >> 1) ^ mag01[y & 1]  # [0] = [0 + 397] ... wrap if >= 624
 
         self._mti = 0
+
+    # for Q23
+    def copy_state_from_array(self, lst):
+        # have to copy this hard coded value FeelsBadMan
+        if len(lst) != 624:
+            raise ValueError("Input array size is not 624!!")
+
+        # copy state
+        self._mt = lst.copy()
+
+        # also modify mti ... assume it has not executed the 625th time of genrand_int32()
+        self._mti = 624
+
+        # now we have copied its state completely. Run genrand_int32() should yield the same output as the original one
