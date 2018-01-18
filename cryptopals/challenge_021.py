@@ -22,7 +22,7 @@ def get_int_list_from_file(path):
 
 def test_MT19937():
     # Test 3 things. If all pass, then the MT19937 implementation should be correct
-    init_array = [0x123, 0x234, 0x345, 0x456]
+    init_array = [0x123, 0x234, 0x345, 0x456]  # same array as in C code
 
     r = MT19937()
     r.init_by_array(init_array)
